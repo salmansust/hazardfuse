@@ -1,0 +1,23 @@
+# Smoke test: synthetic data (scripts/make_synthetic_data.py), 2 epochs, one seed. Checks the whole pipeline in
+# about a minute on a CPU; the numbers mean nothing.
+base: glen_lyn.yaml                   # every key not set here comes from the base file
+site: Synthetic
+output_dir: outputs/smoke
+data:
+  dir: data/synthetic
+  features: synthetic_Features
+  labels: synthetic_Label
+seeds: [42]
+split:
+  trials: 50
+training:
+  epochs: 2
+  patience: 2
+evaluation:
+  n_boot: 100
+  n_boot_auc: 20
+reference:
+  data: null
+  metrics: null
+ablation:
+  seeds: [42]

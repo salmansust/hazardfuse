@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hazardfuse"
+version = "1.0.0"
+description = "HazardFuse: pixel-patch fusion network for leached-metal hazard mapping around coal combustion residual sites"
+readme = "README.md"
+requires-python = ">=3.9,<3.13"
+license = {file = "LICENSE"}
+authors = [{name = "Salman Karim"}]
+dependencies = ["tensorflow>=2.15,<2.18", "numpy<2", "pandas", "scipy", "scikit-learn", "matplotlib", "rasterio", "pyyaml", "joblib"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

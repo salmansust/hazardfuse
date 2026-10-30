@@ -1,0 +1,108 @@
+# HazardFuse - Glen Lyn configuration (settings of the published run).
+# Paths are relative to the repository root unless absolute. Every key can be overridden on the command line
+# (scripts/train.py --set training.epochs=50 --set seeds=[42]).
+
+site: Glen Lyn
+output_dir: outputs/glen_lyn
+
+data:
+  dir: data/raw                       # folder with the GeoTIFFs (see data/README.md)
+  features: glen_lyn_Features         # file stem: glen_lyn_Features.tif (66 bands, band names in the descriptions)
+  labels: glen_lyn_Label              # file stem: glen_lyn_Label.tif (0 lower HI, 1 higher HI, other values = no data)
+  band_rename:                        # regex -> replacement, applied to every band name on reading
+    "^(CSTV_.+?)_Diff$": "\\1"        # CSTV_NDVI_Diff -> CSTV_NDVI
+  drop_bands: [QA60]                  # removed from the model input (cloud flag, not a surface property)
+
+# reproducibility
+seeds: [42, 43, 44]                   # every seed is a full refit; the first seed is the main run (maps, bootstrap)
+deterministic: true                   # tf.config.experimental.enable_op_determinism() (see docs/REPRODUCIBILITY.md)
+threshold: 0.5
+class_weights: true                   # inverse class frequency of the training pixels
+
+split:                                # buffered spatial block split
+  block_size: 32                      # pixels
+  fractions: [0.70, 0.15, 0.15]       # training, validation, test (share of valid pixels)
+  buffer_px: 8                        # training/validation pixels this close to a held-out block are dropped
+  trials: 500                         # random block assignments; the best match to fractions and class balance is kept
+  seed: 42
+
+model:                                # HazardFuse architecture (the switches remove one component each)
+  patch: 21                           # odd; 21 x 21 pixels centred on the labelled pixel
+  dropout: 0.30
+  band_attention: true
+  center_branch: true
+  spatial_branch: true
+  fusion_gate: true
+
+training:
+  epochs: 100
+  batch: 256
+  learning_rate: 0.001                # Adam
+  patience: 20                        # early stopping on validation loss; best weights restored
+  lr_factor: 0.5                      # ReduceLROnPlateau on validation loss
+  lr_patience: 6                      # max(patience // 3, 2)
+  min_lr: 1.0e-6
+  augment: true                       # random 90-degree rotations and flips of the training patches
+
+evaluation:
+  n_boot: 2000                        # block-bootstrap resamples of the test blocks (main seed)
+  n_boot_auc: 200                     # resamples for the ROC/PR-AUC intervals (slower)
+
+outputs:
+  geotiffs: true                      # probability, class and error maps of the main seed and the seed mean
+  figures: true
+  export_bundle: true                 # exported_models/HazardFuse: one .keras file per seed + manifest.json
+
+reference:                            # published values, checked by scripts/check_reproduction.py
+  data: results/reference/glen_lyn_data.json
+  metrics: results/reference/glen_lyn_hazardfuse_test_per_seed.csv
+
+# feature groups (feature-group ablation, band-attention figure); bands absent from the raster are skipped
+feature_groups:
+  VI: [NDVI, MTCI, SAVI, CIRE, NDRE1, NDRE2, LAI, LCC, CCC]
+  S2: [B1, B2, B3, B4, B5, B6, B7, B8, B8A, B9, B11, B12]
+  Land Cover: [DW_Vegetation, DW_LandCover, DW_Snow, DW_Built, DW_Shrubs, DW_Bare, DW_Crops, DW_FloodedVeg, DW_Grass,
+               DW_Trees, DW_Water]
+  CSTV: [CSTV_NDVI, CSTV_MTCI, CSTV_SAVI, CSTV_CIRE, CSTV_NDRE1, CSTV_NDRE2, CSTV_LAI, CSTV_LCC, CSTV_CCC]
+  Topographic: [DEM, Slope_deg, Aspect_deg, Curvature]
+  Soil: [Moisture, pH, Sand_pct_0_5cm, Silt_pct_0_5cm, Clay_pct_0_5cm]
+  Climate: [Temperature, Humidity]
+  Hydrologic: [PrecipJJA_mm_mean, UpstreamArea_km2, HAND_m, TWI]
+  RoC: [NDVI_Rate, MTCI_Rate, SAVI_Rate, CIRE_Rate, NDRE1_Rate, NDRE2_Rate, LAI_Rate, LCC_Rate, CCC_Rate]
+  Quality: [QA60]
+
+ablation:
+  seeds: [42, 43, 44]
+  architecture:                       # each variant removes one component of the full model
+    w/o band attention: {band_attention: false}
+    w/o center-pixel branch: {center_branch: false, band_attention: false, fusion_gate: false}
+    w/o fusion gate: {fusion_gate: false}
+    w/o spatial-embedding branch: {spatial_branch: false, fusion_gate: false}
+
+transfer:                             # scripts/transfer.py defaults
+  standardise: target                 # "source" (training-site mean/SD) or "target" (statistics of the new site)
+  adabn: true                         # re-estimate BatchNorm statistics on the new site (no labels used)
+  threshold: source                   # "source" (0.5), "prevalence" (training class-1 share) or a number
+
+# figure style (fonts, sizes, colours) - every figure reads these values
+figure:
+  font_family: [Times New Roman, Times, Liberation Serif, Nimbus Roman, DejaVu Serif]
+  font_size: 9
+  title_size: 10
+  label_size: 9
+  tick_size: 8
+  legend_size: 8
+  text_color: black
+  dpi: 300
+  formats: [png, pdf, svg]
+  colors:
+    class: ["#008000", "#d73027"]                                   # lower HI (0), higher HI (1)
+    error: ["#4575b4", "#fdae61", "#d73027", "#1a9641", "#e0e0e0"]  # TN, FP, FN, TP, not scored
+    split: ["#a6d96a", "#d9d9d9", "#fdae61", "#7b3294"]             # training, buffer, validation, test
+    probability_cmap: RdYlGn_r
+    train: "#4d4d4d"
+    val: "#2a78d6"
+    proposed: "#2a78d6"
+    grid: "#e6e5e0"
+    groups: ["#2a78d6", "#1a9850", "#e08214", "#7b3294", "#b2182b", "#8c510a", "#35978f", "#c51b7d", "#4d4d4d",
+             "#bababa"]

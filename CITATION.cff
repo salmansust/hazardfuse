@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below (update with the article reference once published)."
+title: "HazardFuse: pixel-patch fusion network for leached-metal hazard mapping from multisource satellite features"
+version: 1.0.0
+date-released: 2026-10-30
+authors:
+  - family-names: Karim
+    given-names: Salman
+    affiliation: "Department of Mining and Minerals Engineering, Virginia Tech"
+license: MIT
+repository-code: "https://github.com/<user>/hazardfuse"
+keywords: [coal combustion residuals, groundwater hazard, remote sensing, deep learning, Sentinel-2, Google Earth Engine]

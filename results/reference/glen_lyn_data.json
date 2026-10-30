@@ -1,0 +1,14 @@
+{
+  "rows": 212,
+  "cols": 288,
+  "bands": 66,
+  "input_bands": 65,
+  "valid_pixels": 61056,
+  "class1_fraction": 0.739,
+  "train_class1_pixels": 23312,
+  "train_pixels": 30828,
+  "buffer_pixels": 13555,
+  "val_pixels": 7457,
+  "test_pixels": 9216,
+  "test_blocks": 9
+}
